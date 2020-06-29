@@ -77,19 +77,23 @@ never_exp <- read.table("/export/wflenoir/dream_competition/5044_never_exp_GMM_d
 # 
 # write_delim(try,"./mean_exp_known.txt",delim = "\t")
 
-mean_exp_known <- read.delim("/export/wflenoir/dream_competition/mean_exp_known.txt") ### original cell lines WT expression
+cell_id <- c("ASPC1","DU145","EF021","NCIH1793","HCC1143","LNCAPCLONEFGC","U87MG")
+
+#mean_exp_known <- read.delim("/export/wflenoir/dream_competition/mean_exp_known.txt") ### original cell lines WT expression
 ccle_dat <- read.csv("/export/wflenoir/dream_competition/data_ccle_RNAseq_DREAMv2_FIXED.csv") ### CCLE expression
 
 ###filtering for overlapping genes
-ccle_dat <- ccle_dat %>% filter(X %!in% never_exp$V1) %>% filter(X %in% mean_exp_known$gene)
+ccle_dat <- ccle_dat %>% filter(X %!in% never_exp$V1) #%>% filter(X %in% mean_exp_known$gene)
 #ccle_dat <- ccle_dat %>% filter(X %in% sometimes_exp$V1) %>% filter(X %in% mean_exp_known$gene)
-mean_exp_known <- mean_exp_known %>% filter(gene %in% ccle_dat$X)
+#mean_exp_known <- mean_exp_known %>% filter(gene %in% ccle_dat$X)
 #browser()
 ###adding string to mean exp to avoid name overlap
 colnames(mean_exp_known) <- paste("orig", colnames(mean_exp_known), sep = "_")
 
 ###this is sensitivity date of 11 cell lines against 30 drugs. 
 sensitivity_pred <- read.csv("/export/wflenoir/dream_competition/sens_v2.txt")
+
+
 
 colnames(ccle_dat)[1] <- "gene"
 colnames(mean_exp_known)[1] <- "gene"
@@ -107,7 +111,28 @@ rownames(rna_seq_merge) <- rows
 
 head(rna_seq_merge)
 
+library(uwot)
+
+browser()
+
+dat_umap <- uwot::umap(as.data.frame(t(rna_seq_merge)),n_neighbors = 100)
+
+dat_umap_df <- as.data.frame(dat_umap)
+rownames(dat_umap_df) <- cols
+
+dat_umap_df$type <- "Orig"
+dat_umap_df$type[rownames(dat_umap_df) %in% ccle_cells] <- "CCLE"
+
+ggplot(dat_umap_df) + geom_point(aes(V1, V2,color = type))
+
+dist_df <- dist(dat_umap_df) %>% as.matrix() %>% as.data.frame()
+
+browser()
+
+
 dist_matrix <- as.matrix(dist(as.matrix(t(rna_seq_merge))))
+
+boxplot(rna_seq_merge[500:520])
 
 cell_orig <- c()
 cell_closest <- c()
